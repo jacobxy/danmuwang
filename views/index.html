@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script src="/static/js/jquery-3.3.1.min.js"></script>
+	 <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.slim.js"></script> -->
+	 <script crossorigin="anonymous" integrity="sha512-uxRa12CO77QdvaA0gy2Mi13LycS6cBkFLljRfx9fZIpawCZHgIFnQ99YrJl2KL3Fi+jHfWB2UvGTIlDC0zJ34g==" src="https://lib.baomitu.com/socket.io/2.4.0/socket.io.dev.js"></script>
+	<title>Document</title>
+	<script>
+		let standName = {
+			"huya":"HY",
+			"douyu":"DYU",
+			"bilibili":"BILI",
+			"douyin":"DYI",
+			"kuaishou":"KS",
+			"weixin":"SPH",
+		}
+
+		var luckFrom = ""
+		var luckName = ""
+		var luckText = ""
+
+		var socket = io('ws://', { transports: ['websocket'] });
+		var stop = false
+		socket.on('danmu', (data) => {
+			$.each(data,(idx,val)=>{
+				let $div = $('<div></div>').attr({
+					"from":val.from,
+					"user":val.user,
+					"text":val.text,
+				}).html(standName[val.from] +" " + val.user + "  : " + val.text)
+				if (!stop) {
+					$('.danmu').append($div)
+				}
+			})
+			$(".danmu").scrollTop($(".danmu")[0].scrollHeight);
+		})
+
+		socket.on('count', (data) => {
+			let from = data.from
+			let cnt = data.count
+			$('.'+from +'-count').html(cnt)
+		})
+
+		socket.on('luck', (data) => {
+			luckFrom = data.from
+			luckName = data.name
+			luckText = data.text
+		})
+
+		socket.on("connected",function(data) {
+			console.log('socket connected');
+    	});
+		socket.on("disconnect",function(data) {
+			console.log(data)
+		})
+
+    	socket.on("error",function(data) {
+			console.log(data)
+		})
+
+		$(function () {
+			$('.start').click(() => {
+				$.get('/setcmd?cmd=' + $('.good').val())
+			})
+
+			$('.stop').click(() => {
+				console.log("stop click",stop)
+				if (!stop) {
+					let danmu = $('.danmu > div')
+					let l = danmu.length
+					if(l > 20){
+						let $luck = danmu.eq(l-10)	
+						let from 
+						let user 
+						if (luckFrom != "" && luckName != "" && luckText != ""){
+							let text = $luck.attr('text')
+							$luck.html(luckFrom + " " + luckName + " : " + luckText)
+							from = luckFrom
+							user = luckName
+							luckFrom = ""
+							luckName = ""
+							luckText = ""
+						}else {
+						 	from = $luck.attr('from')
+						 	user = $luck.attr('user')
+						}
+						$luck.clone().appendTo('.luck')
+						console.log('luck', from ,user)
+						$.get('/luck?from='+from + '&user='+user)
+					}
+					$('.stop').html("继续")
+				} else {
+					$('.stop').html("停止")
+				}
+				stop = !stop
+			})
+		})
+
+	</script>
+	<style>
+		@font-face{
+			font-family: myFirstFont;
+			src: url('static/font/OPPOSans-H.ttf')
+		}
+		body {
+			font-family: myFirstFont;
+		}
+		.tail {
+			display: flex;
+			width: 60%;
+			margin: 10px auto;
+			justify-content: space-around;
+		}
+		.tail > div > div {
+			display: flex;
+			justify-content: center;
+		}
+		.danmu{
+			width: 40%;
+			height: 800px;
+			overflow: hidden;
+			overflow-y: scroll;
+			border: 1px black solid;
+		}
+
+		.danmu > div {
+			height: 40px;
+			display: flex;
+			align-items: center;
+			margin-left: 5%;
+			font-size: 1.2em;
+		}
+
+		.danmu > div:nth-last-child(10){
+			background-color: rgba(200, 0, 0, 0.5);
+		}
+		.func {
+			width: 60%;
+			margin: 0 auto;
+			display: flex;
+			justify-content: space-around;
+		}
+		.func > * {
+			font-size: 1.5em;
+			font-weight: bold;
+		}
+		.plant {
+			font-size: 1.2em;;
+			font-weight: bold;
+		}
+		.top {
+			display: flex;
+			justify-content: center;
+		}
+		.lucks {
+			width: 40%;
+		}
+		.title{
+			display: flex;
+			justify-content: center;
+			color: red;
+			font-weight: bold;
+			font-size: 2em;
+		}
+
+		.luck > div {
+			margin-left: 5%;
+			padding: 5px;
+			background-color: rgba(200, 0, 0, 0.5);
+		}
+	</style>
+</head>
+<body>
+		<div class="top">
+			<div class="danmu">
+		
+			</div>
+			<div class="lucks">
+				<div class="title">中奖弹幕</div>
+				<div class="luck">
+
+				</div>
+			</div>
+		</div>
+		<div class="tail">
+			<div>
+				<div class="plant">斗鱼</div>					
+				<div><span class="douyu-count"></span></div>
+			</div>
+			<div>
+				<div class="plant">虎牙</div>					
+				<div><span class="huya-count"></span></div>
+			</div>
+			<div>
+				<div class="plant">抖音</div>					
+				<div><span class="douyin-count"></span></div>
+			</div>
+			<div>
+				<div class="plant">快手</div>					
+				<div><span class="kuaishou-count"></span></div>
+			</div>
+			<div>
+				<div class="plant">哔哩哔哩</div>					
+				<div><span class="bilibili-count"></span></div>
+			</div>
+			<div>
+				<div class="plant">微信视频</div>					
+				<div><span class="weixin-count"></span></div>
+			</div>
+		</div>
+		<div class="func">
+			<input type="text" class="good"> <button class="start">抽奖开始</button> <button class="stop">停止</button>
+		</div>
+</body>
+</html>
